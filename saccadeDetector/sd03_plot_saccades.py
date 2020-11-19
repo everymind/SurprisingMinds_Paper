@@ -156,7 +156,7 @@ if __name__=='__main__':
     # grab today's date
     now = datetime.datetime.now()
     todays_datetime = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
-    logging.basicConfig(filename="pm03PlotSaccades_" + todays_datetime + ".log", filemode='w', level=logging.INFO)
+    logging.basicConfig(filename="sd03PlotSaccades_" + todays_datetime + ".log", filemode='w', level=logging.INFO)
     ###################################
     # SOURCE DATA AND OUTPUT FILE LOCATIONS 
     ###################################
