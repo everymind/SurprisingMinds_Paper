@@ -29,7 +29,7 @@ current_working_directory = os.getcwd()
 
 ##########################################################
 #### MODIFY THIS FIRST FUNCTION BASED ON THE LOCATIONS OF:
-# 1) dataset_dir (folder with full, primary experimental dataset)
+# 1) dataset_dir (folder with csv files of full pupil tracking dataset)
 # 2) plots_dir (parent folder for all plots output by this script)
 # 3) intermediates_dir (folder for output of this script)
 ##########################################################
