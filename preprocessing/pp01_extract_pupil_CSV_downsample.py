@@ -226,6 +226,10 @@ if not os.path.exists(downsampled_pupils_folder):
 logging.info('DATA FOLDER: %s \n OUTPUT FOLDER: %s' % (pupil_csv_folder, downsampled_pupils_folder))
 print('DATA FOLDER: %s \n OUTPUT FOLDER: %s' % (pupil_csv_folder, downsampled_pupils_folder))
 ###################################
+# PARAMETERS
+###################################
+N_CPU_available = 24
+###################################
 # FIND DAILY PUPIL TRACKING DATA
 ###################################
 daily_folders = glob.glob(pupil_csv_folder + os.sep + 'SurprisingMinds_*')
@@ -332,7 +336,7 @@ def process_day(day_folder):
         logging.info("Day {day} failed!".format(day=day_name))
         logging.info(e)
 
-Parallel(n_jobs=24)(delayed(process_day)(day_folder) for day_folder in pupil_folders)
+Parallel(n_jobs=N_CPU_available)(delayed(process_day)(day_folder) for day_folder in pupil_folders)
 ###################################
 # EXTRACTION COMPLETE
 ###################################
