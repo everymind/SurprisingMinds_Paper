@@ -43,7 +43,6 @@ current_working_directory = os.getcwd()
 ##########################################################
 def load_data():
     #dataset_dir = r'C:\Users\taunsquared\Dropbox\SurprisingMinds\analysis\dataPythonWorkflows'
-    #plots_dir = r'C:\Users\taunsquared\Dropbox\SurprisingMinds\analysis\plots'
     #intermediates_dir = r'C:\Users\taunsquared\Dropbox\SurprisingMinds\analysis\intermediates'
     dataset_dir = r'D:\data\SurprisingMinds\dataPythonWorkflows'
     intermediates_dir = r'D:\data\SurprisingMinds\intermediates'
