@@ -15,7 +15,6 @@ Each item in the above lists is a dictionary with structure {key:[] for key in s
 
 @author: Adam R Kampff and Danbee Kim
 """
-
 import os
 import glob
 import datetime
@@ -26,7 +25,6 @@ from itertools import groupby
 import csv
 import logging
 from joblib import Parallel, delayed
-
 ###################################
 # SET CURRENT WORKING DIRECTORY
 ###################################
@@ -34,7 +32,6 @@ current_working_directory = os.getcwd()
 ###################################
 # FUNCTIONS
 ###################################
-
 ##########################################################
 #### MODIFY THIS FIRST FUNCTION BASED ON THE LOCATIONS OF:
 # 1) dataset_dir (folder with csv files of full pupil tracking dataset)
@@ -209,7 +206,6 @@ def filter_to_nan(list_of_dicts, upper_threshold, lower_threshold):
 ##########################################################
 # BEGIN SCRIPT
 ##########################################################
-
 ###################################
 # SCRIPT LOGGER
 ###################################
@@ -226,6 +222,7 @@ downsampled_pupils_folder = os.path.join(output_folder, "downsampled_pupils")
 if not os.path.exists(downsampled_pupils_folder):
     #print("Creating downsampled_pupils_folder.")
     os.makedirs(downsampled_pupils_folder)
+
 logging.info('DATA FOLDER: %s \n OUTPUT FOLDER: %s' % (pupil_csv_folder, downsampled_pupils_folder))
 print('DATA FOLDER: %s \n OUTPUT FOLDER: %s' % (pupil_csv_folder, downsampled_pupils_folder))
 ###################################
