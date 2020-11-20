@@ -137,7 +137,7 @@ if __name__=='__main__':
             good_indices = np.where(area > 0)[0]
 
             # Exclude crappy trials
-            if(len(good_indices) < 200):
+            if(len(good_indices) < 200): # MAKE CUTOFF LENGTH FOR CRAPPY TRIALS AN EXTERNAL VARIABLE??
                 break
             good_x = x[good_indices]
             good_y = y[good_indices]
