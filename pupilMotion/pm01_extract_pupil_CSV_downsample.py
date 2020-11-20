@@ -20,16 +20,9 @@ import os
 import glob
 import datetime
 import numpy as np
-import matplotlib.pyplot as plt
 import math
-import sys
 import itertools
-import matplotlib.animation as animation
-from collections import defaultdict
-from scipy.signal import savgol_filter
 from itertools import groupby
-from operator import itemgetter
-from scipy.signal import find_peaks
 import csv
 import logging
 from joblib import Parallel, delayed
@@ -50,7 +43,6 @@ current_working_directory = os.getcwd()
 ##########################################################
 def load_data():
     #dataset_dir = r'C:\Users\taunsquared\Dropbox\SurprisingMinds\analysis\dataPythonWorkflows'
-    #plots_dir = r'C:\Users\taunsquared\Dropbox\SurprisingMinds\analysis\plots'
     #intermediates_dir = r'C:\Users\taunsquared\Dropbox\SurprisingMinds\analysis\intermediates'
     dataset_dir = r'D:\data\SurprisingMinds\dataPythonWorkflows'
     intermediates_dir = r'D:\data\SurprisingMinds\intermediates'
