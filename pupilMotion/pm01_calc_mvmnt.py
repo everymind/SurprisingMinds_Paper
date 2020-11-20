@@ -296,7 +296,6 @@ smoothing_window = 25 # in time buckets, must be odd! for savgol_filter
 # SORT DATA BY STIMULUS TYPE
 ###################################
 stim_vids = [24.0, 25.0, 26.0, 27.0, 28.0, 29.0]
-stim_old_to_new = {24.0: 0, 25.0: 1, 26.0: 2, 27.0: 3, 28.0: 4, 29.0: 5}
 all_right_trials_contours_X = {key:[] for key in stim_vids}
 all_right_trials_contours_Y = {key:[] for key in stim_vids}
 all_right_trials_circles_X = {key:[] for key in stim_vids}
@@ -422,7 +421,7 @@ for side in range(len(all_movements)):
             all_avg_motion_peaks[side][c_axis][stimuli] = peaks_this_stim
 
 ###################################
-# FIND PEAKS IN MOTION
+# FIND PEAKS IN MOVEMENT
 ###################################
 all_right_contours_X_peaks = {key:{} for key in stim_vids}
 all_right_circles_X_peaks = {key:{} for key in stim_vids}
@@ -454,24 +453,40 @@ for side in range(len(all_movements)):
 
 ###################################
 # SPLIT INTO OCTO, UNIQUE, CALIB
-# timing info in 40ms resolution (as opposed to timing info in sd02_detect_saccades.py, which is in 4ms resolution)
 ###################################
+stim_old_to_new = {24.0: 0, 25.0: 1, 26.0: 2, 27.0: 3, 28.0: 4, 29.0: 5}
+# timing info in 40ms resolution (as opposed to timing info in sd02_detect_saccades.py, which is in 4ms resolution)
 calib_start = 0
 calib_end = 443
 unique_start = 443
 unique_ends = {0: 596, 1: 602, 2: 666, 3: 608, 4: 667, 5: 719}
 octo_len = 398
-# CUT INTO SEQUENCES
+
 for side in range(len(all_movements)):
-    for c_axis in range(len(all_movements[side])):
+    for c_axis in range(len(all_movements[side])):  
         # INITIATE ARRAY STRUCTURE FOR EACH SEQUENCE
+        # movements
         all_calib_mvmnts = []
         all_octo_mvmnts = []
         all_unique_mvmnts = {'0':[], '1':[], '2':[], '3':[], '4':[], '5':[]}
+        # avg motion
+        all_calib_avg_motion = []
+        all_octo_avg_motion = []
+        all_unique_avg_motion = {'0':[], '1':[], '2':[], '3':[], '4':[], '5':[]}
+        # avg motion peaks
+        all_calib_avg_motion_peaks = []
+        all_octo_avg_motion_peaks = []
+        all_unique_avg_motion_peaks = {'0':[], '1':[], '2':[], '3':[], '4':[], '5':[]}
+        # movement peaks
+        all_calib_mvmnt_peaks = {}
+        all_octo_mvmnt_peaks = {}
+        all_unique_mvmnts_peaks = {0:{}, 1:{}, 2:{}, 3:{}, 4:{}, 5:{}}
+        # chunk and save
         for stimuli in all_movements[side][c_axis]:
             new_stim_number = stim_old_to_new[stimuli]
             print('Chunking into calibration, octopus, and unique sequences for {side} side, {cAxis_type}, old stim number {stim}, new stim number {new_stim}'.format(side=side_names[side], cAxis_type=cAxis_names[c_axis], stim=stimuli, new_stim=new_stim_number))
             logging.info('Chunking into calibration, octopus, and unique sequences for {side} side, {cAxis_type}, old stim number {stim}, new stim number {new_stim}'.format(side=side_names[side], cAxis_type=cAxis_names[c_axis], stim=stimuli, new_stim=new_stim_number))
+            # MOVEMENT
             for trial in all_movements[side][c_axis][stimuli]:
                 this_trial_calib = trial[:calib_end]
                 all_calib_mvmnts.append(this_trial_calib)
@@ -479,6 +494,37 @@ for side in range(len(all_movements)):
                 all_unique_mvmnts[str(new_stim_number)].append(this_trial_unique)
                 this_trial_octo = trial[unique_trials[new_stim_number]:unique_trials[new_stim_number]+octo_len]
                 all_octo_mvmnts.append(this_trial_octo)
+            # AVG MOTION
+            this_stim_calib_avg_motion = all_avg_motion[side][c_axis][stimuli][:calib_end]
+            all_calib_avg_motion.append(this_stim_calib_avg_motion)
+            this_stim_unique_avg_motion = all_avg_motion[side][c_axis][stimuli][calib_end:unique_trials[new_stim_number]]
+            all_unique_avg_motion[str(new_stim_number)].append(this_stim_unique_avg_motion)
+            this_stim_octo_avg_motion = all_avg_motion[side][c_axis][stimuli][unique_trials[new_stim_number]:unique_trials[new_stim_number]+octo_len]
+            all_octo_avg_motion.append(this_stim_octo_avg_motion)
+            # AVG MOTION PEAKS
+            this_stim_calib_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if x<calib_end]
+            all_calib_avg_motion_peaks.append(this_stim_calib_avg_motion_peaks)
+            this_stim_unique_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if calib_end<x<unique_trials[new_stim_number]]
+            all_unique_avg_motion_peaks[str(new_stim_number)].append(this_stim_unique_avg_motion_peaks)
+            this_stim_octo_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if unique_trials[new_stim_number]<x<unique_trials[new_stim_number]+octo_len]
+            all_octo_avg_motion_peaks.append(this_stim_octo_avg_motion_peaks)
+            # MOVEMENT PEAKS
+            for saccade_threshold in all_peaks[side][c_axis][stimuli]:
+                this_saccade_thresh_calib = []
+                this_saccade_thresh_unique = {'0':[], '1':[], '2':[], '3':[], '4':[], '5':[]}
+                this_saccade_thresh_octo = []
+                for time_bucket in all_peaks[side][c_axis][stimuli][saccade_threshold]:
+                    if time_bucket<calib_end:
+                        this_saccade_thresh_calib.append((timebucket, all_peaks[side][c_axis][stimuli][saccade_threshold][time_bucket]))
+                    if calib_end<time_bucket<unique_trials[new_stim_number]:
+                        this_saccade_thresh_unique[str(new_stim_number)].append((timebucket, all_peaks[side][c_axis][stimuli][saccade_threshold][time_bucket]))
+                    if unique_trials[new_stim_number]<time_bucket<unique_trials[new_stim_number]+octo_len:
+                        this_saccade_thresh_octo.append((time_bucket, all_peaks[side][c_axis][stimuli][saccade_threshold][time_bucket]))
+                all_calib_mvmnt_peaks[saccade_threshold] = this_saccade_thresh_calib
+                all_unique_mvmnts_peaks[new_stim_number][saccade_threshold] = this_saccade_thresh_unique
+                all_octo_mvmnt_peaks[saccade_threshold] = this_saccade_thresh_octo
+        # SAVE
+        # movements
         all_calib_mvmnts = np.array(all_calib_mvmnts)
         all_octo_mvmnts = np.array(all_octo_mvmnts)
         N_per_unique = []
@@ -489,10 +535,44 @@ for side in range(len(all_movements)):
         calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_mvmnt_' + str(len(all_calib_mvmnts)) + '.npz'
         octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_mvmnt_' + str(len(all_octo_mvmnts)) + '.npz'
         unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_mvmnt_' + unique_N_str + '_' + '.npz'
-        print('Saving to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_mvmnts), o=len(all_octo_mvmnts), u=unique_N_str))
-        logging.info('Saving to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_mvmnts), o=len(all_octo_mvmnts), u=unique_N_str))
+        print('Saving movement data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_mvmnts), o=len(all_octo_mvmnts), u=unique_N_str))
+        logging.info('Saving movement data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_mvmnts), o=len(all_octo_mvmnts), u=unique_N_str))
         np.savez(calib_path, all_calib_mvmnts)
         np.savez(octo_path, all_octo_mvmnts)
         np.savez(unique_path, **all_unique_mvmnts)
+        # avg motion
+        all_calib_avg_motion = np.array(all_calib_avg_motion)
+        all_octo_avg_motion = np.array(all_octo_avg_motion)
+        N_per_unique = []
+        for unique in all_unique_avg_motion:
+            all_unique_avg_motion[unique] = np.array(all_unique_avg_motion[unique])
+            N_per_unique.append(str(len(all_unique_avg_motion[unique])))
+        unique_N_str = '-'.join(N_per_unique)
+        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_avg_motion_' + str(len(all_calib_avg_motion)) + '.npz'
+        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_avg_motion_' + str(len(all_octo_avg_motion)) + '.npz'
+        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_avg_motion_' + unique_N_str + '_' + '.npz'
+        print('Saving avg motion data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion), o=len(all_octo_avg_motion), u=unique_N_str))
+        logging.info('Saving avg motion data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion), o=len(all_octo_avg_motion), u=unique_N_str))
+        np.savez(calib_path, all_calib_avg_motion)
+        np.savez(octo_path, all_octo_avg_motion)
+        np.savez(unique_path, **all_unique_avg_motion)
+        # avg motion peaks
+        all_calib_avg_motion_peaks = np.array(all_calib_avg_motion_peaks)
+        all_octo_avg_motion_peaks = np.array(all_octo_avg_motion_peaks)
+        N_per_unique = []
+        for unique in all_unique_avg_motion_peaks:
+            all_unique_avg_motion_peaks[unique] = np.array(all_unique_avg_motion_peaks[unique])
+            N_per_unique.append(str(len(all_unique_avg_motion_peaks[unique])))
+        unique_N_str = '-'.join(N_per_unique)
+        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_avg_motion_peaks' + str(len(all_calib_avg_motion_peaks)) + '.npz'
+        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_avg_motion_peaks' + str(len(all_octo_avg_motion_peaks)) + '.npz'
+        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_avg_motion_peaks' + unique_N_str + '_' + '.npz'
+        print('Saving avg motion peaks data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion_peaks), o=len(all_octo_avg_motion_peaks), u=unique_N_str))
+        logging.info('Saving avg motion peaks data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion_peaks), o=len(all_octo_avg_motion_peaks), u=unique_N_str))
+        np.savez(calib_path, all_calib_avg_motion_peaks)
+        np.savez(octo_path, all_octo_avg_motion_peaks)
+        np.savez(unique_path, **all_unique_avg_motion_peaks)
+        # movement peaks (saccades)
+        
 
 #FIN
