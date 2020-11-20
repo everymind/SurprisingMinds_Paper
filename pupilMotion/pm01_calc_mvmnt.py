@@ -490,23 +490,23 @@ for side in range(len(all_movements)):
             for trial in all_movements[side][c_axis][stimuli]:
                 this_trial_calib = trial[:calib_end]
                 all_calib_mvmnts.append(this_trial_calib)
-                this_trial_unique = trial[calib_end:unique_trials[new_stim_number]]
+                this_trial_unique = trial[calib_end:unique_ends[new_stim_number]]
                 all_unique_mvmnts[str(new_stim_number)].append(this_trial_unique)
-                this_trial_octo = trial[unique_trials[new_stim_number]:unique_trials[new_stim_number]+octo_len]
+                this_trial_octo = trial[unique_ends[new_stim_number]:unique_ends[new_stim_number]+octo_len]
                 all_octo_mvmnts.append(this_trial_octo)
             # AVG MOTION
             this_stim_calib_avg_motion = all_avg_motion[side][c_axis][stimuli][:calib_end]
             all_calib_avg_motion.append(this_stim_calib_avg_motion)
-            this_stim_unique_avg_motion = all_avg_motion[side][c_axis][stimuli][calib_end:unique_trials[new_stim_number]]
+            this_stim_unique_avg_motion = all_avg_motion[side][c_axis][stimuli][calib_end:unique_ends[new_stim_number]]
             all_unique_avg_motion[str(new_stim_number)].append(this_stim_unique_avg_motion)
-            this_stim_octo_avg_motion = all_avg_motion[side][c_axis][stimuli][unique_trials[new_stim_number]:unique_trials[new_stim_number]+octo_len]
+            this_stim_octo_avg_motion = all_avg_motion[side][c_axis][stimuli][unique_ends[new_stim_number]:unique_ends[new_stim_number]+octo_len]
             all_octo_avg_motion.append(this_stim_octo_avg_motion)
             # AVG MOTION PEAKS
             this_stim_calib_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if x<calib_end]
             all_calib_avg_motion_peaks.append(this_stim_calib_avg_motion_peaks)
-            this_stim_unique_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if calib_end<x<unique_trials[new_stim_number]]
+            this_stim_unique_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if calib_end<x<unique_ends[new_stim_number]]
             all_unique_avg_motion_peaks[str(new_stim_number)].append(this_stim_unique_avg_motion_peaks)
-            this_stim_octo_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if unique_trials[new_stim_number]<x<unique_trials[new_stim_number]+octo_len]
+            this_stim_octo_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if unique_ends[new_stim_number]<x<unique_ends[new_stim_number]+octo_len]
             all_octo_avg_motion_peaks.append(this_stim_octo_avg_motion_peaks)
             # MOVEMENT PEAKS
             for saccade_threshold in all_peaks[side][c_axis][stimuli]:
@@ -516,9 +516,9 @@ for side in range(len(all_movements)):
                 for time_bucket in all_peaks[side][c_axis][stimuli][saccade_threshold]:
                     if time_bucket<calib_end:
                         this_saccade_thresh_calib.append((time_bucket, all_peaks[side][c_axis][stimuli][saccade_threshold][time_bucket]))
-                    if calib_end<time_bucket<unique_trials[new_stim_number]:
+                    if calib_end<time_bucket<unique_ends[new_stim_number]:
                         this_saccade_thresh_unique[str(new_stim_number)].append((time_bucket, all_peaks[side][c_axis][stimuli][saccade_threshold][time_bucket]))
-                    if unique_trials[new_stim_number]<time_bucket<unique_trials[new_stim_number]+octo_len:
+                    if unique_ends[new_stim_number]<time_bucket<unique_ends[new_stim_number]+octo_len:
                         this_saccade_thresh_octo.append((time_bucket, all_peaks[side][c_axis][stimuli][saccade_threshold][time_bucket]))
                 all_calib_mvmnt_peaks[saccade_threshold] = this_saccade_thresh_calib
                 all_unique_mvmnts_peaks[new_stim_number][saccade_threshold] = this_saccade_thresh_unique
