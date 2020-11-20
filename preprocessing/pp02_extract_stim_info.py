@@ -116,7 +116,7 @@ def threshold_to_nan(input_array, threshold, upper_or_lower):
 # grab today's date
 now = datetime.datetime.now()
 todays_datetime = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
-logging.basicConfig(filename="pm02ExtractStimInfo_" + todays_datetime + ".log", filemode='w', level=logging.INFO)
+logging.basicConfig(filename="pp02ExtractStimInfo_" + todays_datetime + ".log", filemode='w', level=logging.INFO)
 ###################################
 # SOURCE DATA AND OUTPUT FILE LOCATIONS 
 ###################################

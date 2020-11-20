@@ -15,7 +15,6 @@ Each item in the above lists is a dictionary with structure {key:[] for key in s
 
 @author: Adam R Kampff and Danbee Kim
 """
-
 import os
 import glob
 import datetime
@@ -26,7 +25,6 @@ from itertools import groupby
 import csv
 import logging
 from joblib import Parallel, delayed
-
 ###################################
 # SET CURRENT WORKING DIRECTORY
 ###################################
@@ -34,7 +32,6 @@ current_working_directory = os.getcwd()
 ###################################
 # FUNCTIONS
 ###################################
-
 ##########################################################
 #### MODIFY THIS FIRST FUNCTION BASED ON THE LOCATIONS OF:
 # 1) dataset_dir (folder with csv files of full pupil tracking dataset)
@@ -49,7 +46,7 @@ def load_data():
     return dataset_dir, intermediates_dir
 ##########################################################
 
-def load_daily_pupils(which_eye, day_csv_folder_path, max_no_of_buckets, original_bucket_size, new_bucket_size): 
+def load_daily_pupils(which_eye, day_csv_folder_path, max_no_of_buckets, original_bucket_size, new_bucket_size, bad_trial_cutoff): 
     if (new_bucket_size % original_bucket_size == 0):
         new_sample_rate = int(new_bucket_size/original_bucket_size)
         max_no_of_buckets = int(max_no_of_buckets)
@@ -92,7 +89,7 @@ def load_daily_pupils(which_eye, day_csv_folder_path, max_no_of_buckets, origina
                 if cluster[0] == 1 and cluster[1]>longest_cluster:
                     longest_cluster = cluster[1]
             #print("For trial {name}, the longest cluster is {length}".format(name=trial_name, length=longest_cluster))
-            if longest_cluster<100:
+            if longest_cluster<bad_trial_cutoff:
                 no_of_samples = math.ceil(len(trial)/new_sample_rate)
                 this_trial_contours_X = []
                 this_trial_contours_Y = []
@@ -209,14 +206,13 @@ def filter_to_nan(list_of_dicts, upper_threshold, lower_threshold):
 ##########################################################
 # BEGIN SCRIPT
 ##########################################################
-
 ###################################
 # SCRIPT LOGGER
 ###################################
 # grab today's date
 now = datetime.datetime.now()
 todays_datetime = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
-logging.basicConfig(filename="pm01AnalyzeCSVPupilPosition_" + todays_datetime + ".log", filemode='a', level=logging.INFO)
+logging.basicConfig(filename="pp01ExtractPupilCSVDownsample_" + todays_datetime + ".log", filemode='a', level=logging.INFO)
 ###################################
 # SOURCE DATA AND OUTPUT FILE LOCATIONS 
 ###################################
@@ -226,8 +222,13 @@ downsampled_pupils_folder = os.path.join(output_folder, "downsampled_pupils")
 if not os.path.exists(downsampled_pupils_folder):
     #print("Creating downsampled_pupils_folder.")
     os.makedirs(downsampled_pupils_folder)
+
 logging.info('DATA FOLDER: %s \n OUTPUT FOLDER: %s' % (pupil_csv_folder, downsampled_pupils_folder))
 print('DATA FOLDER: %s \n OUTPUT FOLDER: %s' % (pupil_csv_folder, downsampled_pupils_folder))
+###################################
+# PARAMETERS
+###################################
+N_CPU_available = 24
 ###################################
 # FIND DAILY PUPIL TRACKING DATA
 ###################################
@@ -254,6 +255,10 @@ new_time_bucket_sample_rate = downsampled_bucket_size_ms/original_bucket_size_in
 milliseconds_for_baseline = 3000
 baseline_no_buckets = int(milliseconds_for_baseline/new_time_bucket_sample_rate)
 ###################################
+# CUTOFF FOR DISCARDING TRIALS
+###################################
+bad_trial_cutoff = 200
+###################################
 # BEGIN PUPIL DATA EXTRACTION
 ###################################
 stim_vids = [24.0, 25.0, 26.0, 27.0, 28.0, 29.0]
@@ -268,8 +273,8 @@ def process_day(day_folder):
     day_name = day_folder.split("_")[-1]
     try: 
         ## EXTRACT PUPIL SIZE AND POSITION
-        right_area_contours_X, right_area_contours_Y, right_area_contours, right_area_circles_X, right_area_circles_Y, right_area_circles, num_right_activations, num_good_right_trials = load_daily_pupils("right", csv_folder, downsampled_no_of_time_buckets, original_bucket_size_in_ms, downsampled_bucket_size_ms)
-        left_area_contours_X, left_area_contours_Y, left_area_contours, left_area_circles_X, left_area_circles_Y, left_area_circles, num_left_activations, num_good_left_trials = load_daily_pupils("left", csv_folder, downsampled_no_of_time_buckets, original_bucket_size_in_ms, downsampled_bucket_size_ms)
+        right_area_contours_X, right_area_contours_Y, right_area_contours, right_area_circles_X, right_area_circles_Y, right_area_circles, num_right_activations, num_good_right_trials = load_daily_pupils("right", csv_folder, downsampled_no_of_time_buckets, original_bucket_size_in_ms, downsampled_bucket_size_ms, bad_trial_cutoff)
+        left_area_contours_X, left_area_contours_Y, left_area_contours, left_area_circles_X, left_area_circles_Y, left_area_circles, num_left_activations, num_good_left_trials = load_daily_pupils("left", csv_folder, downsampled_no_of_time_buckets, original_bucket_size_in_ms, downsampled_bucket_size_ms, bad_trial_cutoff)
         print("On {day}, exhibit was activated {right_count} times (right) and {left_count} times (left), with {right_good_count} good right trials and {left_good_count} good left trials".format(day=day_name, right_count=num_right_activations, left_count=num_left_activations, right_good_count=num_good_right_trials, left_good_count=num_good_left_trials))
         logging.info("On {day}, exhibit was activated {right_count} times (right) and {left_count} times (left), with {right_good_count} good right trials and {left_good_count} good left trials".format(day=day_name, right_count=num_right_activations, left_count=num_left_activations, right_good_count=num_good_right_trials, left_good_count=num_good_left_trials))
         # separate by stimulus number
@@ -331,7 +336,7 @@ def process_day(day_folder):
         logging.info("Day {day} failed!".format(day=day_name))
         logging.info(e)
 
-Parallel(n_jobs=24)(delayed(process_day)(day_folder) for day_folder in pupil_folders)
+Parallel(n_jobs=N_CPU_available)(delayed(process_day)(day_folder) for day_folder in pupil_folders)
 ###################################
 # EXTRACTION COMPLETE
 ###################################
