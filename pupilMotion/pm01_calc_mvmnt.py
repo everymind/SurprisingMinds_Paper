@@ -285,8 +285,8 @@ if not os.path.exists(octo_mvmnt_folder):
 if not os.path.exists(unique_mvmnt_folder):
     os.makedirs(unique_mvmnt_folder)
 
-logging.info('PUPIL DATA FOLDER: %s \n STIMULI LUMINANCE DATA FOLDER: %s \n PUPIL PLOTS FOLDER: %s' % (pupil_data_downsampled, lum_processed, pupil_motion_plots))
-print('PUPIL DATA FOLDER: %s \n STIMULI LUMINANCE DATA FOLDER: %s \n PUPIL PLOTS FOLDER: %s' % (pupil_data_downsampled, lum_processed, pupil_motion_plots))
+logging.info('PUPIL DATA FOLDER: %s \n CALIB MOVEMENT FOLDER: %s \n OCTO MOVEMENT FOLDER: %s \n UNIQUE MOVEMENT FOLDER: %s' % (pupil_data_downsampled, calib_mvmnt_folder, octo_mvmnt_folder, unique_mvmnt_folder))
+print('PUPIL DATA FOLDER: %s \n CALIB MOVEMENT FOLDER: %s \n OCTO MOVEMENT FOLDER: %s \n UNIQUE MOVEMENT FOLDER: %s' % (pupil_data_downsampled, calib_mvmnt_folder, octo_mvmnt_folder, unique_mvmnt_folder))
 ###################################
 # PARAMETERS
 ###################################
@@ -467,7 +467,7 @@ for side in range(len(all_movements)):
         # INITIATE ARRAY STRUCTURE FOR EACH SEQUENCE
         all_calib_mvmnts = []
         all_octo_mvmnts = []
-        all_unique_mvmnts = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[]}
+        all_unique_mvmnts = {'0':[], '1':[], '2':[], '3':[], '4':[], '5':[]}
         for stimuli in all_movements[side][c_axis]:
             new_stim_number = stim_old_to_new[stimuli]
             print('Chunking into calibration, octopus, and unique sequences for {side} side, {cAxis_type}, old stim number {stim}, new stim number {new_stim}'.format(side=side_names[side], cAxis_type=cAxis_names[c_axis], stim=stimuli, new_stim=new_stim_number))
@@ -476,14 +476,23 @@ for side in range(len(all_movements)):
                 this_trial_calib = trial[:calib_end]
                 all_calib_mvmnts.append(this_trial_calib)
                 this_trial_unique = trial[calib_end:unique_trials[new_stim_number]]
-                all_unique_mvmnts[new_stim_number].append(this_trial_unique)
+                all_unique_mvmnts[str(new_stim_number)].append(this_trial_unique)
                 this_trial_octo = trial[unique_trials[new_stim_number]:unique_trials[new_stim_number]+octo_len]
                 all_octo_mvmnts.append(this_trial_octo)
         all_calib_mvmnts = np.array(all_calib_mvmnts)
         all_octo_mvmnts = np.array(all_octo_mvmnts)
-        all_unique_mvmnts = np.array(all_unique_mvmnts)
-        calib_path = 
-
-
+        N_per_unique = []
+        for unique in all_unique_mvmnts:
+            all_unique_mvmnts[unique] = np.array(all_unique_mvmnts[unique])
+            N_per_unique.append(str(len(all_unique_mvmnts[unique])))
+        unique_N_str = '-'.join(N_per_unique)
+        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_mvmnt_' + str(len(all_calib_mvmnts)) + '.npz'
+        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_mvmnt_' + str(len(all_octo_mvmnts)) + '.npz'
+        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_mvmnt_' + unique_N_str + '_' + '.npz'
+        print('Saving to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_mvmnts), o=len(all_octo_mvmnts), u=unique_N_str))
+        logging.info('Saving to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_mvmnts), o=len(all_octo_mvmnts), u=unique_N_str))
+        np.savez(calib_path, all_calib_mvmnts)
+        np.savez(octo_path, all_octo_mvmnts)
+        np.savez(unique_path, **all_unique_mvmnts)
 
 #FIN
