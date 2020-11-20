@@ -212,7 +212,7 @@ def filter_to_nan(list_of_dicts, upper_threshold, lower_threshold):
 # grab today's date
 now = datetime.datetime.now()
 todays_datetime = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
-logging.basicConfig(filename="pm01AnalyzeCSVPupilPosition_" + todays_datetime + ".log", filemode='a', level=logging.INFO)
+logging.basicConfig(filename="pp01ExtractPupilCSVDownsample_" + todays_datetime + ".log", filemode='a', level=logging.INFO)
 ###################################
 # SOURCE DATA AND OUTPUT FILE LOCATIONS 
 ###################################
