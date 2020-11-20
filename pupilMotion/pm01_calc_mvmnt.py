@@ -548,9 +548,9 @@ for side in range(len(all_movements)):
             all_unique_avg_motion[unique] = np.array(all_unique_avg_motion[unique])
             N_per_unique.append(str(len(all_unique_avg_motion[unique])))
         unique_N_str = '-'.join(N_per_unique)
-        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_avg_motion_' + str(len(all_calib_avg_motion)) + '.npz'
-        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_avg_motion_' + str(len(all_octo_avg_motion)) + '.npz'
-        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_avg_motion_' + unique_N_str + '_' + '.npz'
+        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_avgMotion_' + str(len(all_calib_avg_motion)) + '.npz'
+        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_avgMotion_' + str(len(all_octo_avg_motion)) + '.npz'
+        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_avgMotion_' + unique_N_str + '_' + '.npz'
         print('Saving avg motion data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion), o=len(all_octo_avg_motion), u=unique_N_str))
         logging.info('Saving avg motion data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion), o=len(all_octo_avg_motion), u=unique_N_str))
         np.savez(calib_path, all_calib_avg_motion)
@@ -564,9 +564,9 @@ for side in range(len(all_movements)):
             all_unique_avg_motion_peaks[unique] = np.array(all_unique_avg_motion_peaks[unique])
             N_per_unique.append(str(len(all_unique_avg_motion_peaks[unique])))
         unique_N_str = '-'.join(N_per_unique)
-        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_avg_motion_peaks_' + str(len(all_calib_avg_motion_peaks)) + '.npz'
-        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_avg_motion_peaks_' + str(len(all_octo_avg_motion_peaks)) + '.npz'
-        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_avg_motion_peaks_' + unique_N_str + '_' + '.npz'
+        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_avgMotionPeaks_' + str(len(all_calib_avg_motion_peaks)) + '.npz'
+        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_avgMotionPeaks_' + str(len(all_octo_avg_motion_peaks)) + '.npz'
+        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_avgMotionPeaks_' + unique_N_str + '_' + '.npz'
         print('Saving avg motion peaks data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion_peaks), o=len(all_octo_avg_motion_peaks), u=unique_N_str))
         logging.info('Saving avg motion peaks data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion_peaks), o=len(all_octo_avg_motion_peaks), u=unique_N_str))
         np.savez(calib_path, all_calib_avg_motion_peaks)
