@@ -5,11 +5,10 @@ Analysis: Measure speed of pupil
 
 Loads daily .npz files with x position, y position, size, and size baseline data.
 Calculate movement from one frame to the next and find movement peaks (saccades).
-Plot pupil movement and motion (absolute value of movement).
+Split into calibration, unique, and octopus sequences.
 
 @author: Adam R Kampff and Danbee Kim
 """
-
 import os
 import glob
 import datetime
@@ -35,12 +34,10 @@ current_working_directory = os.getcwd()
 ##########################################################
 #### MODIFY THIS FIRST FUNCTION BASED ON THE LOCATIONS OF:
 # 1) dataset_dir (parent folder with intermediate files)
-# 2) plots_dir (parent folder for all plots output by this script)
 ##########################################################
 def load_data():
     dataset_dir = r'D:\data\SurprisingMinds\intermediates'
-    plots_dir = r'D:\data\SurprisingMinds\plots'
-    return dataset_dir, plots_dir
+    return dataset_dir
 ##########################################################
 
 def threshold_to_nan(input_array, threshold, upper_or_lower):
@@ -269,39 +266,36 @@ def find_saccades(list_of_movement_arrays, saccade_threshold, raw_count_threshol
 # grab today's date
 now = datetime.datetime.now()
 todays_datetime = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
-logging.basicConfig(filename="pm03CalcMvmntPlot_" + todays_datetime + ".log", filemode='w', level=logging.INFO)
+logging.basicConfig(filename="pm01CalcMvmnt_" + todays_datetime + ".log", filemode='w', level=logging.INFO)
 ###################################
 # SOURCE DATA AND OUTPUT FILE LOCATIONS 
 ###################################
-data_folder, plots_folder = load_data()
+data_folder = load_data()
 # set up input folders
 pupil_data_downsampled = os.path.join(data_folder, 'downsampled_pupils')
-lum_processed = os.path.join(data_folder, 'lum_processed')
-# set up various plot output folders
-pupil_motion_plots = os.path.join(plots_folder, "pupil_motion")
+# set up various output folders
+calib_mvmnt_folder = os.path.join(data_folder, 'calib_movement')
+octo_mvmnt_folder = os.path.join(data_folder, 'octo_movement')
+unique_mvmnt_folder = os.path.join(data_folder, 'unique_movement')
 # Create plots folder (and sub-folders) if it (they) does (do) not exist
-if not os.path.exists(plots_folder):
-    os.makedirs(plots_folder)
-if not os.path.exists(pupil_motion_plots):
-    os.makedirs(pupil_motion_plots)
+if not os.path.exists(calib_mvmnt_folder):
+    os.makedirs(calib_mvmnt_folder)
+if not os.path.exists(octo_mvmnt_folder):
+    os.makedirs(octo_mvmnt_folder)
+if not os.path.exists(unique_mvmnt_folder):
+    os.makedirs(unique_mvmnt_folder)
 
-logging.info('PUPIL DATA FOLDER: %s \n STIMULI LUMINANCE DATA FOLDER: %s \n PUPIL PLOTS FOLDER: %s' % (pupil_data_downsampled, lum_processed, pupil_motion_plots))
-print('PUPIL DATA FOLDER: %s \n STIMULI LUMINANCE DATA FOLDER: %s \n PUPIL PLOTS FOLDER: %s' % (pupil_data_downsampled, lum_processed, pupil_motion_plots))
+logging.info('PUPIL DATA FOLDER: %s \n CALIB MOVEMENT FOLDER: %s \n OCTO MOVEMENT FOLDER: %s \n UNIQUE MOVEMENT FOLDER: %s' % (pupil_data_downsampled, calib_mvmnt_folder, octo_mvmnt_folder, unique_mvmnt_folder))
+print('PUPIL DATA FOLDER: %s \n CALIB MOVEMENT FOLDER: %s \n OCTO MOVEMENT FOLDER: %s \n UNIQUE MOVEMENT FOLDER: %s' % (pupil_data_downsampled, calib_mvmnt_folder, octo_mvmnt_folder, unique_mvmnt_folder))
 ###################################
 # PARAMETERS
 ###################################
-downsampled_bucket_size_ms = 40
+downsampled_bucket_size_ms = 40 # milliseconds
 smoothing_window = 25 # in time buckets, must be odd! for savgol_filter
-fig_size = 200 # dpi
-plot_movement = False 
-plot_motion = True 
-plot_peaks = False
 ###################################
 # SORT DATA BY STIMULUS TYPE
 ###################################
 stim_vids = [24.0, 25.0, 26.0, 27.0, 28.0, 29.0]
-stim_name_to_float = {"stimuli024": 24.0, "stimuli025": 25.0, "stimuli026": 26.0, "stimuli027": 27.0, "stimuli028": 28.0, "stimuli029": 29.0}
-stim_float_to_name = {24.0: "stimuli024", 25.0: "stimuli025", 26.0: "stimuli026", 27.0: "stimuli027", 28.0: "stimuli028", 29.0: "stimuli029"}
 all_right_trials_contours_X = {key:[] for key in stim_vids}
 all_right_trials_contours_Y = {key:[] for key in stim_vids}
 all_right_trials_circles_X = {key:[] for key in stim_vids}
@@ -427,7 +421,7 @@ for side in range(len(all_movements)):
             all_avg_motion_peaks[side][c_axis][stimuli] = peaks_this_stim
 
 ###################################
-# FIND PEAKS IN MOTION
+# FIND PEAKS IN MOVEMENT
 ###################################
 all_right_contours_X_peaks = {key:{} for key in stim_vids}
 all_right_circles_X_peaks = {key:{} for key in stim_vids}
@@ -458,247 +452,127 @@ for side in range(len(all_movements)):
                 all_peaks[side][c_axis][stim][s_thresh] = find_saccades(all_movements[side][c_axis][stim], s_thresh, count_threshold, peaks_window, w_thresh)
 
 ###################################
-# LOAD STIMULUS LUMINANCE DATA
+# SPLIT INTO OCTO, UNIQUE, CALIB
 ###################################
-luminance_info_path = glob.glob(lum_processed + os.sep + '*.npz')
-for lum_info_path in luminance_info_path:
-    if os.path.basename(lum_info_path) == 'processed_lum.npz':
-        lum = np.load(lum_info_path)
-    elif os.path.basename(lum_info_path) == 'processed_lum_avg.npz':
-        lum_avg = np.load(lum_info_path)
-    else:
-        lum_peaks = np.load(lum_info_path)
+stim_old_to_new = {24.0: 0, 25.0: 1, 26.0: 2, 27.0: 3, 28.0: 4, 29.0: 5}
+# timing info in 40ms resolution (as opposed to timing info in sd02_detect_saccades.py, which is in 4ms resolution)
+calib_start = 0
+calib_end = 443
+unique_start = 443
+unique_ends = {0: 596, 1: 602, 2: 666, 3: 608, 4: 667, 5: 719}
+octo_len = 398
 
-luminances_avg = {}
-luminances_peaks = {}
-luminances = {}
-for vid_key in stim_vids:
-    luminances_avg[vid_key] = lum_avg[stim_float_to_name[vid_key]]
-    luminances_peaks[vid_key] = lum_peaks[stim_float_to_name[vid_key]]
-    luminances[vid_key] = lum[stim_float_to_name[vid_key]]
+for side in range(len(all_movements)):
+    for c_axis in range(len(all_movements[side])):  
+        # INITIATE ARRAY STRUCTURE FOR EACH SEQUENCE
+        # movements
+        all_calib_mvmnts = []
+        all_octo_mvmnts = []
+        all_unique_mvmnts = {'0':[], '1':[], '2':[], '3':[], '4':[], '5':[]}
+        # avg motion
+        all_calib_avg_motion = []
+        all_octo_avg_motion = []
+        all_unique_avg_motion = {'0':[], '1':[], '2':[], '3':[], '4':[], '5':[]}
+        # avg motion peaks
+        all_calib_avg_motion_peaks = []
+        all_octo_avg_motion_peaks = []
+        all_unique_avg_motion_peaks = {'0':[], '1':[], '2':[], '3':[], '4':[], '5':[]}
+        # movement peaks
+        all_calib_mvmnt_peaks = {}
+        all_octo_mvmnt_peaks = {}
+        all_unique_mvmnts_peaks = {0:{}, 1:{}, 2:{}, 3:{}, 4:{}, 5:{}}
+        # chunk and save
+        for stimuli in all_movements[side][c_axis]:
+            new_stim_number = stim_old_to_new[stimuli]
+            print('Chunking into calibration, octopus, and unique sequences for {side} side, {cAxis_type}, old stim number {stim}, new stim number {new_stim}'.format(side=side_names[side], cAxis_type=cAxis_names[c_axis], stim=stimuli, new_stim=new_stim_number))
+            logging.info('Chunking into calibration, octopus, and unique sequences for {side} side, {cAxis_type}, old stim number {stim}, new stim number {new_stim}'.format(side=side_names[side], cAxis_type=cAxis_names[c_axis], stim=stimuli, new_stim=new_stim_number))
+            # MOVEMENT
+            for trial in all_movements[side][c_axis][stimuli]:
+                this_trial_calib = trial[:calib_end]
+                all_calib_mvmnts.append(this_trial_calib)
+                this_trial_unique = trial[calib_end:unique_ends[new_stim_number]]
+                all_unique_mvmnts[str(new_stim_number)].append(this_trial_unique)
+                this_trial_octo = trial[unique_ends[new_stim_number]:unique_ends[new_stim_number]+octo_len]
+                all_octo_mvmnts.append(this_trial_octo)
+            # AVG MOTION
+            this_stim_calib_avg_motion = all_avg_motion[side][c_axis][stimuli][:calib_end]
+            all_calib_avg_motion.append(this_stim_calib_avg_motion)
+            this_stim_unique_avg_motion = all_avg_motion[side][c_axis][stimuli][calib_end:unique_ends[new_stim_number]]
+            all_unique_avg_motion[str(new_stim_number)].append(this_stim_unique_avg_motion)
+            this_stim_octo_avg_motion = all_avg_motion[side][c_axis][stimuli][unique_ends[new_stim_number]:unique_ends[new_stim_number]+octo_len]
+            all_octo_avg_motion.append(this_stim_octo_avg_motion)
+            # AVG MOTION PEAKS
+            this_stim_calib_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if x<calib_end]
+            all_calib_avg_motion_peaks.append(this_stim_calib_avg_motion_peaks)
+            this_stim_unique_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if calib_end<x<unique_ends[new_stim_number]]
+            all_unique_avg_motion_peaks[str(new_stim_number)].append(this_stim_unique_avg_motion_peaks)
+            this_stim_octo_avg_motion_peaks = [x for x in all_avg_motion_peaks[side][c_axis][stimuli] if unique_ends[new_stim_number]<x<unique_ends[new_stim_number]+octo_len]
+            all_octo_avg_motion_peaks.append(this_stim_octo_avg_motion_peaks)
+            # MOVEMENT PEAKS
+            for saccade_threshold in all_peaks[side][c_axis][stimuli]:
+                this_saccade_thresh_calib = []
+                this_saccade_thresh_unique = {'0':[], '1':[], '2':[], '3':[], '4':[], '5':[]}
+                this_saccade_thresh_octo = []
+                for time_bucket in all_peaks[side][c_axis][stimuli][saccade_threshold]:
+                    if time_bucket<calib_end:
+                        this_saccade_thresh_calib.append((time_bucket, all_peaks[side][c_axis][stimuli][saccade_threshold][time_bucket]))
+                    if calib_end<time_bucket<unique_ends[new_stim_number]:
+                        this_saccade_thresh_unique[str(new_stim_number)].append((time_bucket, all_peaks[side][c_axis][stimuli][saccade_threshold][time_bucket]))
+                    if unique_ends[new_stim_number]<time_bucket<unique_ends[new_stim_number]+octo_len:
+                        this_saccade_thresh_octo.append((time_bucket, all_peaks[side][c_axis][stimuli][saccade_threshold][time_bucket]))
+                all_calib_mvmnt_peaks[saccade_threshold] = this_saccade_thresh_calib
+                all_unique_mvmnts_peaks[new_stim_number][saccade_threshold] = this_saccade_thresh_unique
+                all_octo_mvmnt_peaks[saccade_threshold] = this_saccade_thresh_octo
+        # SAVE
+        # movements
+        all_calib_mvmnts = np.array(all_calib_mvmnts)
+        all_octo_mvmnts = np.array(all_octo_mvmnts)
+        N_per_unique = []
+        for unique in all_unique_mvmnts:
+            all_unique_mvmnts[unique] = np.array(all_unique_mvmnts[unique])
+            N_per_unique.append(str(len(all_unique_mvmnts[unique])))
+        unique_N_str = '-'.join(N_per_unique)
+        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_mvmnt_' + str(len(all_calib_mvmnts)) + '.npz'
+        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_mvmnt_' + str(len(all_octo_mvmnts)) + '.npz'
+        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_mvmnt_' + unique_N_str + '_' + '.npz'
+        print('Saving movement data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_mvmnts), o=len(all_octo_mvmnts), u=unique_N_str))
+        logging.info('Saving movement data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_mvmnts), o=len(all_octo_mvmnts), u=unique_N_str))
+        np.savez(calib_path, all_calib_mvmnts)
+        np.savez(octo_path, all_octo_mvmnts)
+        np.savez(unique_path, **all_unique_mvmnts)
+        # avg motion
+        all_calib_avg_motion = np.array(all_calib_avg_motion)
+        all_octo_avg_motion = np.array(all_octo_avg_motion)
+        N_per_unique = []
+        for unique in all_unique_avg_motion:
+            all_unique_avg_motion[unique] = np.array(all_unique_avg_motion[unique])
+            N_per_unique.append(str(len(all_unique_avg_motion[unique])))
+        unique_N_str = '-'.join(N_per_unique)
+        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_avgMotion_' + str(len(all_calib_avg_motion)) + '.npz'
+        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_avgMotion_' + str(len(all_octo_avg_motion)) + '.npz'
+        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_avgMotion_' + unique_N_str + '_' + '.npz'
+        print('Saving avg motion data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion), o=len(all_octo_avg_motion), u=unique_N_str))
+        logging.info('Saving avg motion data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion), o=len(all_octo_avg_motion), u=unique_N_str))
+        np.savez(calib_path, all_calib_avg_motion)
+        np.savez(octo_path, all_octo_avg_motion)
+        np.savez(unique_path, **all_unique_avg_motion)
+        # avg motion peaks
+        all_calib_avg_motion_peaks = np.array(all_calib_avg_motion_peaks)
+        all_octo_avg_motion_peaks = np.array(all_octo_avg_motion_peaks)
+        N_per_unique = []
+        for unique in all_unique_avg_motion_peaks:
+            all_unique_avg_motion_peaks[unique] = np.array(all_unique_avg_motion_peaks[unique])
+            N_per_unique.append(str(len(all_unique_avg_motion_peaks[unique])))
+        unique_N_str = '-'.join(N_per_unique)
+        calib_path = calib_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_calib_avgMotionPeaks_' + str(len(all_calib_avg_motion_peaks)) + '.npz'
+        octo_path = octo_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_octo_avgMotionPeaks_' + str(len(all_octo_avg_motion_peaks)) + '.npz'
+        unique_path = unique_mvmnt_folder + os.sep + side_names[side] + '_' + cAxis_names[c_axis] + '_uniques_avgMotionPeaks_' + unique_N_str + '_' + '.npz'
+        print('Saving avg motion peaks data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion_peaks), o=len(all_octo_avg_motion_peaks), u=unique_N_str))
+        logging.info('Saving avg motion peaks data to file, Calib = {c}, Octo = {o}, Unique = {u}'.format(c=len(all_calib_avg_motion_peaks), o=len(all_octo_avg_motion_peaks), u=unique_N_str))
+        np.savez(calib_path, all_calib_avg_motion_peaks)
+        np.savez(octo_path, all_octo_avg_motion_peaks)
+        np.savez(unique_path, **all_unique_avg_motion_peaks)
+        # movement peaks (saccades)
 
-###################################
-# PLOT MOVEMENT
-###################################
-plotting_peaks_window = 40 # MAKE SURE THIS == peaks_window!!
-cType_names = ['Contours', 'Circles']
-all_movement_right_plot = [(all_right_contours_movement_X, all_right_contours_movement_Y), (all_right_circles_movement_X, all_right_circles_movement_Y)]
-all_movement_left_plot = [(all_left_contours_movement_X, all_left_contours_movement_Y), (all_left_circles_movement_X, all_left_circles_movement_Y)]
-all_movements_plot = [all_movement_right_plot, all_movement_left_plot]
-# plot movement traces
-if plot_movement:
-    for side in range(len(all_movements_plot)):
-        for c_type in range(len(all_movements_plot[side])):
-            for stimuli in all_movements_plot[side][c_type][0]:
-                plot_type_name = side_names[side] + cType_names[c_type]
-                stim_name = stim_float_to_name[stimuli]
-                plot_type_X = all_movements_plot[side][c_type][0][stimuli]
-                plot_N_X = len(plot_type_X)
-                plot_type_Y = all_movements_plot[side][c_type][1][stimuli]
-                plot_N_Y = len(plot_type_Y)
-                plot_luminance = luminances_avg[stimuli]
-                plot_luminance_peaks = luminances_peaks[stimuli]
-                # fig name and path
-                figure_name = 'MovementTraces_' + plot_type_name + '_' + stim_name + '_' + todays_datetime + '_dpi' + str(fig_size) + '.png' 
-                figure_path = os.path.join(pupil_motion_plots, figure_name)
-                figure_title = "Pupil movement of participants \n" + str(total_activation) + " total exhibit activations" + "\nAnalysis type: " + plot_type_name + "\nStimulus type: " + stim_name + "\nPlotted on " + todays_datetime
-                # draw fig
-                plt.figure(figsize=(14, 14), dpi=fig_size)
-                plt.suptitle(figure_title, fontsize=12, y=0.98)
-                # x-axis
-                plt.subplot(3,1,1)
-                plt.ylabel('Change in pixels', fontsize=11)
-                plt.title('Pupil movement in the X-axis; N = ' + str(plot_N_X), fontsize=10, color='grey', style='italic')
-                plt.minorticks_on()
-                plt.grid(b=True, which='major', linestyle='--')
-                for trial in plot_type_X:
-                    plt.plot(trial, linewidth=0.5, color=[0.86, 0.27, 1.0, 0.005])
-                plt.xlim(-10,1250)
-                plt.ylim(-80,80)
-                # y-axis
-                plt.subplot(3,1,2)
-                plt.ylabel('Change in pixels', fontsize=11)
-                plt.title('Pupil movement in the Y-axis; N = ' + str(plot_N_Y), fontsize=10, color='grey', style='italic')
-                plt.minorticks_on()
-                plt.grid(b=True, which='major', linestyle='--')
-                for trial in plot_type_Y:
-                    plt.plot(trial, linewidth=0.5, color=[0.25, 0.25, 1.0, 0.005])
-                plt.xlim(-10,1250)
-                plt.ylim(-80,80)
-                # luminance
-                plt.subplot(3,1,3)
-                plt.ylabel('Percent change in luminance', fontsize=11)
-                plt.xlabel('Time buckets (downsampled, 1 time bucket = ' + str(downsampled_bucket_size_ms) + 'ms)', fontsize=11)
-                plt.title('Average luminance of ' + stim_name + ' as seen by world camera, grayscaled; N = ' + str(len(luminances[stimuli])), fontsize=10, color='grey', style='italic')
-                plt.grid(b=True, which='major', linestyle='--')
-                plt.plot(plot_luminance, linewidth=0.75, color=[1.0, 0.13, 0.4, 1])
-                for peak in plot_luminance_peaks:
-                    plt.plot(peak, plot_luminance[peak], 'x')
-                    plt.text(peak-15, plot_luminance[peak]+0.5, str(peak), fontsize='xx-small', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
-                plt.xlim(-10,1250)
-                plt.ylim(-1,7)
-                # save and display
-                plt.subplots_adjust(hspace=0.5)
-                plt.savefig(figure_path)
-                plt.show(block=False)
-                plt.pause(1)
-                plt.close()
-
-###################################
-# PLOT MOTION
-###################################
-all_avg_motion_right_plot = [(all_right_contours_X_avg_motion, all_right_contours_Y_avg_motion), (all_right_circles_X_avg_motion, all_right_circles_Y_avg_motion)]
-all_avg_motion_left_plot = [(all_left_contours_X_avg_motion, all_left_contours_Y_avg_motion), (all_left_circles_X_avg_motion, all_left_circles_Y_avg_motion)]
-all_avg_motion_plot = [all_avg_motion_right_plot, all_avg_motion_left_plot]
-all_avg_motion_right_peaks_plot = [(all_RcontoursX_avg_motion_peaks, all_RcontoursY_avg_motion_peaks), (all_RcirclesX_avg_motion_peaks, all_RcirclesY_avg_motion_peaks)]
-all_avg_motion_left_peaks_plot = [(all_LcontoursX_avg_motion_peaks, all_LcontoursY_avg_motion_peaks), (all_LcirclesX_avg_motion_peaks, all_LcirclesY_avg_motion_peaks)]
-all_avg_motion_peaks_plot = [all_avg_motion_right_peaks_plot, all_avg_motion_left_peaks_plot]
-# plot MOTION traces (abs val of movement traces)
-if plot_motion:
-    for side in range(len(all_movements_plot)):
-        for c_type in range(len(all_movements_plot[side])):
-            for stimuli in all_movements_plot[side][c_type][0]:
-                plot_type_name = side_names[side] + cType_names[c_type]
-                stim_name = stim_float_to_name[stimuli]
-                plot_type_X = all_movements_plot[side][c_type][0][stimuli]
-                plot_type_X_avg = all_avg_motion_plot[side][c_type][0][stimuli]
-                plot_type_X_avg_peaks = all_avg_motion_peaks_plot[side][c_type][0][stimuli]
-                plot_N_X = len(plot_type_X)
-                plot_type_Y = all_movements_plot[side][c_type][1][stimuli]
-                plot_type_Y_avg = all_avg_motion_plot[side][c_type][1][stimuli]
-                plot_type_Y_avg_peaks = all_avg_motion_peaks_plot[side][c_type][1][stimuli]
-                plot_N_Y = len(plot_type_Y)
-                plot_luminance = luminances_avg[stimuli]
-                plot_luminance_peaks = luminances_peaks[stimuli]
-                # fig name and path
-                figure_name = 'MotionTraces-AvgMotionPeaks' + str(plotting_peaks_window) + '_' + plot_type_name + '_' + stim_name + '_' + todays_datetime + '_dpi' + str(fig_size) + '.png' 
-                figure_path = os.path.join(pupil_motion_plots, figure_name)
-                figure_title = "Pupil motion of participants \n" + str(total_activation) + " total exhibit activations" + "\nAnalysis type: " + plot_type_name + "\nStimulus type: " + stim_name + "\nPeak finding window: " + str(plotting_peaks_window) + "\nPlotted on " + todays_datetime
-                # draw fig
-                plt.figure(figsize=(14, 14), dpi=fig_size)
-                plt.suptitle(figure_title, fontsize=12, y=0.98)
-                # x-axis
-                plt.subplot(3,1,1)
-                plt.ylabel('Change in pixels', fontsize=11)
-                plt.title('Pupil movement in the X-axis; N = ' + str(plot_N_X), fontsize=10, color='grey', style='italic')
-                plt.minorticks_on()
-                plt.grid(b=True, which='major', linestyle='--')
-                for trial in plot_type_X:
-                    plt.plot(abs(trial), linewidth=0.5, color=[0.86, 0.27, 1.0, 0.005])
-                plt.plot(plot_type_X_avg, linewidth=1, color=[0.4, 1.0, 0.27, 1])
-                for peak in plot_type_X_avg_peaks:
-                    if peak<1250:
-                        plt.plot(peak, plot_type_X_avg[peak], 'x')
-                        plt.text(peak-15, plot_type_X_avg[peak]+5, str(peak), fontsize='xx-small', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
-                plt.xlim(-10,1250)
-                plt.ylim(-5,40)
-                # y-axis
-                plt.subplot(3,1,2)
-                plt.ylabel('Change in pixels', fontsize=11)
-                plt.title('Pupil movement in the Y-axis; N = ' + str(plot_N_Y), fontsize=10, color='grey', style='italic')
-                plt.minorticks_on()
-                plt.grid(b=True, which='major', linestyle='--')
-                for trial in plot_type_Y:
-                    plt.plot(abs(trial), linewidth=0.5, color=[0.25, 0.25, 1.0, 0.005])
-                plt.plot(plot_type_Y_avg, linewidth=1, color=[1.0, 1.0, 0.25, 1])
-                for peak in plot_type_Y_avg_peaks:
-                    if peak<1250:
-                        plt.plot(peak, plot_type_Y_avg[peak], 'x')
-                        plt.text(peak-15, plot_type_Y_avg[peak]+5, str(peak), fontsize='xx-small', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
-                plt.xlim(-10,1250)
-                plt.ylim(-5,40)
-                # luminance
-                plt.subplot(3,1,3)
-                plt.ylabel('Percent change in luminance', fontsize=11)
-                plt.xlabel('Time buckets (downsampled, 1 time bucket = ' + str(downsampled_bucket_size_ms) + 'ms)', fontsize=11)
-                #plt.title('Average luminance of ' + stim_name + ' as seen by world camera, grayscaled; N = ' + str(len(luminances[stimuli])), fontsize=10, color='grey', style='italic')
-                plt.title('Average luminance of ' + stim_name + ' as seen by world camera, grayscaled', fontsize=10, color='grey', style='italic')
-                plt.grid(b=True, which='major', linestyle='--')
-                plt.plot(plot_luminance, linewidth=1, color=[1.0, 0.13, 0.4, 1])
-                for peak in plot_luminance_peaks:
-                    plt.plot(peak, plot_luminance[peak], 'x')
-                    plt.text(peak-15, plot_luminance[peak]+0.5, str(peak), fontsize='xx-small', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
-                plt.xlim(-10,1250)
-                plt.ylim(-1,7)
-                # save and display
-                plt.subplots_adjust(hspace=0.5)
-                plt.savefig(figure_path)
-                plt.show(block=False)
-                plt.pause(1)
-                plt.close()
-
-###################################
-# PLOT PEAKS
-###################################
-all_peaks_right_plot = [(all_right_contours_X_peaks, all_right_contours_Y_peaks), (all_right_circles_X_peaks, all_right_circles_Y_peaks)]
-all_peaks_left_plot = [(all_left_contours_X_peaks, all_left_contours_Y_peaks), (all_left_circles_X_peaks, all_left_circles_Y_peaks)]
-all_peaks_plot = [all_peaks_right_plot, all_peaks_left_plot]
-if plot_peaks:
-    for side in range(len(all_movements_plot)):
-        for c_type in range(len(all_movements_plot[side])):
-            for stimuli in all_movements_plot[side][c_type][0]:
-                plot_type_name = side_names[side] + cType_names[c_type]
-                stim_name = stim_float_to_name[stimuli]
-                plot_type_X = all_movements_plot[side][c_type][0][stimuli]
-                plot_type_X_peaks = all_peaks_plot[side][c_type][0][stimuli]
-                plot_N_X = len(plot_type_X)
-                plot_type_Y = all_movements_plot[side][c_type][1][stimuli]
-                plot_type_Y_peaks = all_peaks_plot[side][c_type][1][stimuli]
-                plot_N_Y = len(plot_type_Y)
-                plot_luminance = luminances_avg[stimuli]
-                plot_luminance_peaks = luminances_peaks[stimuli]
-                # fig name and path
-                figure_name = 'MotionTraces-Saccades' + str(plotting_peaks_window) + '_' + plot_type_name + '_' + stim_name + '_' + todays_datetime + '_dpi' + str(fig_size) + '.png' 
-                figure_path = os.path.join(pupil_motion_plots, figure_name)
-                figure_title = "Pupil motion of participants \n" + str(total_activation) + " total exhibit activations" + "\nAnalysis type: " + plot_type_name + "\nStimulus type: " + stim_name + "\nPeaks plotted at height of pixel movement threshold, peak finding window: " + str(plotting_peaks_window) + "\nPlotted on " + todays_datetime
-                # begin drawing fig
-                plt.figure(figsize=(14, 14), dpi=fig_size)
-                plt.suptitle(figure_title, fontsize=12, y=0.98)
-                # x-axis
-                plt.subplot(3,1,1)
-                plt.ylabel('Change in pixels', fontsize=11)
-                plt.title('Pupil movement in the X-axis; N = ' + str(plot_N_X), fontsize=10, color='grey', style='italic')
-                plt.minorticks_on()
-                plt.grid(b=True, which='major', linestyle='--')
-                for trial in plot_type_X:
-                    plt.plot(abs(trial), linewidth=0.5, color=[0.86, 0.27, 1.0, 0.005])
-                for threshold in plot_type_X_peaks.keys():
-                    for key in plot_type_X_peaks[threshold].keys():
-                        if key<1250:
-                            plt.plot(key, threshold, '1', color=[0.4, 1.0, 0.27, 1.0])
-                plt.xlim(-10,1250)
-                plt.ylim(-5,60)
-                # y-axis
-                plt.subplot(3,1,2)
-                plt.ylabel('Change in pixels', fontsize=11)
-                plt.title('Pupil movement in the Y-axis; N = ' + str(plot_N_Y), fontsize=10, color='grey', style='italic')
-                plt.minorticks_on()
-                plt.grid(b=True, which='major', linestyle='--')
-                for trial in plot_type_Y:
-                    plt.plot(abs(trial), linewidth=0.5, color=[0.25, 0.25, 1.0, 0.005])
-                for threshold in plot_type_Y_peaks.keys():
-                    for key in plot_type_Y_peaks[threshold].keys():
-                        if key<1250:
-                            plt.plot(key, threshold, '1', color=[1.0, 1.0, 0.25, 1.0])
-                plt.xlim(-10,1250)
-                plt.ylim(-5,60)
-                # luminance
-                plt.subplot(3,1,3)
-                plt.ylabel('Percent change in luminance (from baseline)', fontsize=11)
-                plt.xlabel('Time buckets (downsampled, 1 time bucket = ' + str(downsampled_bucket_size_ms) + 'ms)', fontsize=11)
-                plt.title('Average luminance of ' + stim_name + ' as seen by world camera, grayscaled; N = ' + str(len(luminances[stimuli])), fontsize=10, color='grey', style='italic')
-                plt.grid(b=True, which='major', linestyle='--')
-                plt.plot(plot_luminance, linewidth=1, color=[1.0, 0.13, 0.4, 1])
-                for peak in plot_luminance_peaks:
-                    plt.plot(peak, plot_luminance[peak], 'x')
-                    plt.text(peak-15, plot_luminance[peak]+0.5, str(peak), fontsize='xx-small', bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
-                plt.xlim(-10,1250)
-                plt.ylim(-1,7)
-                # save and display
-                plt.subplots_adjust(hspace=0.5)
-                plt.savefig(figure_path)
-                plt.show(block=False)
-                plt.pause(1)
-                plt.close()
 
 #FIN

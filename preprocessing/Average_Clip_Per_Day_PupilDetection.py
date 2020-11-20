@@ -10,6 +10,7 @@ import fnmatch
 import sys
 import math
 import csv
+import logging
 
 ### FUNCTIONS ###
 def unpack_to_temp(path_to_zipped, path_to_temp):
@@ -283,30 +284,15 @@ def save_average_clip_images(which_eye, no_of_seconds, save_folder_path, images)
         # Write to image file
         ret = cv2.imwrite(image_file_path, gray)
 
+###################################
+# SCRIPT LOGGER
+###################################
+# grab today's date
+now = datetime.datetime.now()
+todays_datetime = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
+logging.basicConfig(filename="PupilDetection_" + todays_datetime + ".log", filemode='w', level=logging.INFO)
 ### -------------------------------------------- ###
 ### LET THE ANALYSIS BEGIN!! ###
-### log everything in a text file
-current_working_directory = os.getcwd()
-class Logger(object):
-    def __init__(self):
-        # grab today's date
-        now = datetime.datetime.now()
-        todays_datetime = datetime.datetime.today().strftime('%Y%m%d-%H%M%S')
-        log_filename = "PupilDetection_log_" + now.strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
-        log_file = os.path.join(current_working_directory, log_filename)
-        self.terminal = sys.stdout
-        self.log = open(log_file, "a")
-
-    def write(self, message):
-        self.terminal.write(message)
-        self.log.write(message)  
-
-    def flush(self):
-        #this flush method is needed for python 3 compatibility.
-        #this handles the flush command by doing nothing.
-        #you might want to specify some extra behavior here.
-        pass    
-sys.stdout = Logger()
 ### ------------------------------------------- ###
 # list all folders in Synology drive
 # on lab computer
