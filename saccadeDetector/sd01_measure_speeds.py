@@ -101,6 +101,10 @@ if __name__=='__main__':
         for f in filelist:
             os.remove(f)
     ###################################
+    # CUTOFF FOR DISCARDING TRIALS
+    ###################################
+    bad_trial_cutoff = 200
+    ###################################
     # EXTRACT PUPIL TRACKING DATA AND GENERATE "SPEED" PER FRAME FOR EACH EYE VIDEO
     ###################################
     trial_count = 0
@@ -137,7 +141,7 @@ if __name__=='__main__':
             good_indices = np.where(area > 0)[0]
 
             # Exclude crappy trials
-            if(len(good_indices) < 200): # MAKE CUTOFF LENGTH FOR CRAPPY TRIALS AN EXTERNAL VARIABLE??
+            if(len(good_indices) < bad_trial_cutoff): 
                 break
             good_x = x[good_indices]
             good_y = y[good_indices]
