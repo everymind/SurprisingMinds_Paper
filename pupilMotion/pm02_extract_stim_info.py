@@ -9,7 +9,6 @@ Save as a .npz file.
 
 @author: Adam R Kampff and Danbee Kim
 """
-
 import os
 import glob
 import datetime
@@ -18,7 +17,6 @@ from scipy.signal import savgol_filter
 from scipy.signal import find_peaks
 import csv
 import logging
-
 ###################################
 # SET CURRENT WORKING DIRECTORY
 ###################################
@@ -26,7 +24,6 @@ current_working_directory = os.getcwd()
 ###################################
 # FUNCTIONS
 ###################################
-
 ##########################################################
 #### MODIFY THIS FIRST FUNCTION BASED ON THE LOCATIONS OF:
 # 1) dataset_dir (folder with .csv files of luminance per frame of daily stimuli)
@@ -37,7 +34,6 @@ def load_data():
     output_dir = r'D:\data\SurprisingMinds\intermediates'
     return dataset_dir, output_dir
 ##########################################################
-
 def build_timebucket_avg_luminance(timestamps_and_luminance_array, bucket_size_ms, max_no_of_timebuckets):
     bucket_window = datetime.timedelta(milliseconds=bucket_size_ms)
     max_no_of_timebuckets = int(max_no_of_timebuckets)
@@ -184,6 +180,11 @@ for stimulus in luminances:
     lum_peaks, _ = find_peaks(avg_lum_smoothed, height=-1, prominence=0.1)
     luminances_peaks[stimulus] = lum_peaks
 # store processed luminance data in .npz file
-lum_path = lum_processed_folder + os.sep + 'processed_lum_data.npz'
-np.savez(lum_path, lum_avg=luminances_avg, lum_peaks=luminances_peaks)
+for stim_key in stim_vids:
+    luminances_avg[stim_float_to_name[stim_key]] = luminances_avg.pop(stim_key, None)
+    luminances_peaks[stim_float_to_name[stim_key]] = luminances_peaks.pop(stim_key, None)
+lum_avg_path = lum_processed_folder + os.sep + 'processed_lum_avg.npz'
+lum_peaks_path = lum_processed_folder + os.sep + 'processed_lum_peaks.npz'
+np.savez(lum_avg_path, **luminances_avg)
+np.savez(lum_peaks_path, **luminances_peaks)
 # FIN
