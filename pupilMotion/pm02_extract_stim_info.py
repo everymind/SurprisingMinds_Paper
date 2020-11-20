@@ -183,8 +183,11 @@ for stimulus in luminances:
 for stim_key in stim_vids:
     luminances_avg[stim_float_to_name[stim_key]] = luminances_avg.pop(stim_key, None)
     luminances_peaks[stim_float_to_name[stim_key]] = luminances_peaks.pop(stim_key, None)
+    luminances[stim_float_to_name[stim_key]] = luminances.pop(stim_key, None)
 lum_avg_path = lum_processed_folder + os.sep + 'processed_lum_avg.npz'
 lum_peaks_path = lum_processed_folder + os.sep + 'processed_lum_peaks.npz'
+lum_path = lum_processed_folder + os.sep + 'processed_lum.npz'
 np.savez(lum_avg_path, **luminances_avg)
 np.savez(lum_peaks_path, **luminances_peaks)
+np.savez(lum_path, **luminances)
 # FIN
