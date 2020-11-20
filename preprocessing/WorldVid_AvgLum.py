@@ -1,5 +1,5 @@
 ### ------------------------------------------------------------------------- ###
-# DON'T NEED THIS SCRIPT ANYMORE????
+# DEFINITELY NEED THIS SCRIPT!
 ### Create CSV files with average luminance per frame of stimulus vids
 ### use world camera vids for timing, stretch and interpolate raw stim vid lum values
 ### output as data files categorized by calibration, octopus, and unique sequences.

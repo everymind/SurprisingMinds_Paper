@@ -1,3 +1,7 @@
+####
+# TO DO: TURN INTO SCRIPT
+###
+
 import os
 import glob
 import cv2

@@ -1,5 +1,5 @@
 ### ------------------------------------------------------------------------- ###
-# DON'T NEED THIS SCRIPT ANYMORE????
+# MAKE INTO A SCRIPT FOR COMPLETENESS
 ### Create binary files of raw stim vid luminance values fitted to world cam stim vid presentation timings
 ### use world camera vids for timing, use raw vid luminance values extracted via bonsai
 ### also save world cam luminance as sanity check/ground truth
